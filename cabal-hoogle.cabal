@@ -1,0 +1,136 @@
+cabal-version:      3.0
+name:               cabal-hoogle
+version:            0.1
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Tim McGilchrist <timmcgil@gmail.com>
+maintainer:         Tim McGilchrist <timmcgil@gmail.com>
+
+copyright:          (c) 2022 Tim McGilchrist
+homepage:           https://github.com/tmcgilchrist/cabal-hoogle
+bug-reports:        https://github.com/tmcgilchrist/cabal-hoogle/issues
+synopsis:           cabal-hoogle
+category:           Development
+build-type:         Custom
+description:
+  An experimental wrapper around Hoogle and cabal to generate project specific indexes
+
+tested-with:        GHC ==8.10.7
+extra-source-files: README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/tmcgilchrist/cabal-hoogle.git
+
+custom-setup
+  setup-depends:
+    , base   >=4.9
+    , Cabal  ^>=3.4
+
+library
+  build-depends:
+    , async                    >=2.2
+    , attoparsec               >=0.12
+    , base                     >=4.9
+    , base16-bytestring        >=0.1
+    , bytestring               >=0.10
+    , Cabal                    ^>=3.4
+    , case-insensitive         >=1.2
+    , containers               >=0.5
+    , cryptonite               >=0.15
+    , directory                >=1.2
+    , exceptions               >=0.8
+    , filelock                 >=0.1
+    , filepath                 >=1.4
+    , ghc-prim                 >=0.4.0
+    , memory                   >=0.12
+    , monad-loops              >=0.4
+    , optparse-applicative     >=0.14
+    , parallel                 >=3.2
+    , process                  >=1.5
+    , retry                    >=0.7
+    , SafeSemaphore            >=0.10
+    , stm                      >=2.4
+    , tar                      >=0.4
+    , template-haskell
+    , temporary                >=1.2
+    , text                     >=1.2
+    , time                     >=1.4
+    , time-locale-compat       >=0.1
+    , transformers             >=0.4
+    , transformers-bifunctors  >=0.1
+    , transformers-either      >=0.1
+    , unix                     >=2.7
+
+  default-language: Haskell2010
+  ghc-options:      -Wall
+  hs-source-dirs:   src
+  exposed-modules:
+    CabalHoogle.Cabal
+    CabalHoogle.Catch
+    CabalHoogle.Error
+    CabalHoogle.Home
+    CabalHoogle.Hoogle
+    CabalHoogle.IO
+    CabalHoogle.Options.Applicative
+    CabalHoogle.Options.Git
+    CabalHoogle.P
+    CabalHoogle.Package
+    CabalHoogle.Path
+    CabalHoogle.Process
+    Paths_cabal_hoogle
+
+executable cabal-hoogle
+  default-language: Haskell2010
+  ghc-options:      -Wall -threaded -rtsopts
+  hs-source-dirs:   gen main
+  main-is:          cabal-hoogle.hs
+  other-modules:
+    BuildInfo_cabal_hoogle
+    DependencyInfo_cabal_hoogle
+
+  autogen-modules:
+    BuildInfo_cabal_hoogle
+    DependencyInfo_cabal_hoogle
+
+  build-depends:
+    , base
+    , bytestring               >=0.10
+    , cabal-plan               >=0.7
+    , containers               >=0.5
+    , directory                >=1.2
+    , file-embed
+    , filepath                 >=1.4
+    , cabal-hoogle
+    , optparse-applicative     >=0.11
+    , text                     >=1.2
+    , time                     >=1.4
+    , time-locale-compat       >=0.1
+    , transformers             >=0.4
+    , transformers-bifunctors  >=0.1
+    , transformers-either      >=0.1
+
+test-suite test
+  type:             exitcode-stdio-1.0
+  main-is:          test.hs
+  default-language: Haskell2010
+  ghc-options:      -Wall
+  hs-source-dirs:   test
+  other-modules:
+    Test.CabalHoogle.Arbitrary
+    Test.CabalHoogle.Hoogle
+    Test.CabalHoogle.Main
+    Test.CabalHoogle.Package
+    Test.CabalHoogle.Process
+    Test.CabalHoogle.Tripping
+
+  build-depends:
+    , base                  >=4.9
+    , directory             >=1.2
+    , hedgehog-corpus       >=0.1
+    , cabal-hoogle
+    , process               >=1.5
+    , QuickCheck            >=2.8
+    , quickcheck-instances  >=0.3
+    , text
+    , transformers          >=0.4
