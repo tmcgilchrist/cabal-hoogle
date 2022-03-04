@@ -18,5 +18,5 @@ prop_joinHooglePackages =
     (HooglePackagesSandbox [packageId "a" [1, 2], packageId "c" [3, 4]])
       === [packageId "a" [1, 2], packageId "c" [3, 4], packageId "b" [3, 4]]
 
-return []
+pure []
 tests = $quickCheckAll

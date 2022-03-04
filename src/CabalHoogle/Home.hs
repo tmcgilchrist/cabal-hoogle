@@ -19,18 +19,18 @@ getCabalHome = do
   bind canonicalizePath $
     case mhome of
       Just home ->
-        return home
+        pure home
       Nothing ->
-        (</> T.pack ".cabal") `liftM` getHomeDirectory
+        (</> T.pack ".cabal") <$> getHomeDirectory
 
 getCabalHoogleDir :: MonadIO m => Directory -> m Directory
 getCabalHoogleDir path = do
   home <- getCabalHome
-  return (home </> path)
+  pure (home </> path)
 
 ensureCabalDir :: MonadIO m => Directory -> m Directory
 ensureCabalDir path = do
   path' <- getCabalHoogleDir path
   createDirectoryIfMissing True path'
-  return path'
+  pure path'
 

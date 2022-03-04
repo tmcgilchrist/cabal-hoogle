@@ -48,7 +48,7 @@ genBuildInfo verbosity pkg = do
       targetHs = "gen/" ++ name ++ ".hs"
       targetText = "gen/version.txt"
   t <- timestamp verbosity
-  
+
   let v = showVersion version
   let buildVersion = intercalate "-" [v, t]
   rewriteFileEx verbosity targetHs $ unlines [
@@ -94,7 +94,7 @@ timestamp verbosity =
     case splitAt 14 s of
       (d, _n : []) ->
         if (length d == 14 && filter isDigit d == d)
-          then return d
+          then pure d
           else fail $ "date has failed to produce the correct format [" <> s <> "]."
       _ ->
         fail $ "date has failed to produce a date long enough [" <> s <> "]."

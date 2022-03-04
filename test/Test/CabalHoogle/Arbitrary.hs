@@ -10,7 +10,7 @@ import qualified Data.Text as T
 
 import           Hedgehog.Corpus (muppets)
 
-import           CabalHoogle.Cabal.Types
+-- import           CabalHoogle.Cabal.Types
 import           CabalHoogle.Package
 
 import           CabalHoogle.P
@@ -19,14 +19,14 @@ import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
 
 
-newtype EqCabalError =
-  EqCabalError {
-      unCabalError :: CabalError
-    } deriving (Show)
+-- newtype EqCabalError =
+--   EqCabalError {
+--       unCabalError :: CabalError
+--     } deriving (Show)
 
-instance Eq EqCabalError where
-  (==) x y =
-    show x == show y
+-- instance Eq EqCabalError where
+--   (==) x y =
+--     show x == show y
 
 instance Arbitrary PackageName where
   arbitrary = do

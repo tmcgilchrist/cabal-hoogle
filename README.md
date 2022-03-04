@@ -14,13 +14,31 @@ Usage
 ## Build
 cabal build all
 
+## Build hoogle for local packages (cabal-hoogle runs this command if it finds no local hoogle files)
+## OR cabal build LIBRARY --haddock-hoogle
+cabal v2-haddock --haddock-hoogle all 
+
 ## Run and build index
 cabal exec -- cabal-hoogle hoogle "fmap"
 
 ## Or cabal install and run the executable
+cabal install cabal-hoogle
+
+## Search for 'fmap' type
+cabal-hoogle hoogle "fmap"
 ```
 
 All tools are highly experimental, although I (Tim McGilchrist) use them regularily.
+
+TODO
+----------
+
+ - [ ] Port tests to use Hedgehog
+ - [ ] Setup cli tests
+ - [ ] Setup default cli command to hoogle search
+ - [ ] Link sources from cabal.project 
+ - [ ] Incremental / watch based rebuilding of the index file. 
+ - [ ] Find how to get local hoogle .txt files without using `find`
 
 Resources
 ----------

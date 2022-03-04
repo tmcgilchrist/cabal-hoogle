@@ -17,5 +17,5 @@ prop_clean xs =
 dirtyChars :: [Char]
 dirtyChars = "\b\r"
 
-return []
+pure []
 tests = $quickCheckAll

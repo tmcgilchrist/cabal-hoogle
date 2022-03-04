@@ -257,7 +257,7 @@ bind :: Monad m => (a -> m b) -> m a -> m b
 bind = (=<<)
 
 head :: (Foldable f) => f a -> Maybe a
-head = foldr (\x _ -> return x) Nothing
+head = foldr (\x _ -> pure x) Nothing
 
 -- | Logical disjunction.
 orA :: Applicative f => f Bool -> f Bool -> f Bool

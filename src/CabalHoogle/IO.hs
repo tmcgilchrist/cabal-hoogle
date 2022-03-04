@@ -87,17 +87,17 @@ data ListingOptions = Recursive | RecursiveDepth Int
   deriving (Eq, Ord, Show)
 
 getDirectoryListing :: MonadIO m => ListingOptions -> Directory -> m [Path]
-getDirectoryListing (RecursiveDepth n) _ | n < 0 = return []
+getDirectoryListing (RecursiveDepth n) _ | n < 0 = pure []
 getDirectoryListing options path = do
-    entries    <- fmap (path </>) `liftM` getDirectoryContents path
+    entries    <- fmap (path </>) <$> getDirectoryContents path
     subEntries <- mapM down entries
-    return (concat (entries : subEntries))
+    pure (concat (entries : subEntries))
   where
     down entry = do
       isDir <- doesDirectoryExist entry
       if isDir
          then getDirectoryListing options' entry
-         else return []
+         else pure []
 
     options' = case options of
       Recursive        -> Recursive
@@ -107,7 +107,7 @@ getDirectoryContents :: MonadIO m => Directory -> m [Path]
 getDirectoryContents path = liftIO $ do
   entries <- Directory.getDirectoryContents (T.unpack path)
   let interesting x = not (x == "." || x == "..")
-  return . filter interesting
+  pure . filter interesting
          . fmap T.pack
          $ entries
 
@@ -133,7 +133,7 @@ makeRelativeToCurrentDirectory :: MonadIO m => Path -> m (Maybe Path)
 makeRelativeToCurrentDirectory path = do
   current <- getCurrentDirectory
   absPath <- T.pack `liftM` liftIO (Directory.makeAbsolute (T.unpack path))
-  return (makeRelative current absPath)
+  pure (makeRelative current absPath)
 
 tryMakeRelativeToCurrent :: MonadIO m => Directory -> m Directory
 tryMakeRelativeToCurrent dir =
@@ -164,7 +164,7 @@ getModificationTime path =
   let
     onError e =
       if isDoesNotExistError e then
-        return Nothing
+        pure Nothing
       else
         throwM e
   in
@@ -177,7 +177,7 @@ getModificationTime path =
 readUtf8 :: MonadIO m => File -> m (Maybe Text)
 readUtf8 path = runMaybeT $ do
   bytes <- MaybeT (readBytes path)
-  return (T.decodeUtf8 bytes)
+  pure (T.decodeUtf8 bytes)
 
 writeUtf8 :: MonadIO m => File -> Text -> m ()
 writeUtf8 path text = liftIO (B.writeFile (T.unpack path) (T.encodeUtf8 text))
@@ -186,7 +186,7 @@ readBytes :: MonadIO m => File -> m (Maybe ByteString)
 readBytes path = liftIO $ do
   exists <- doesFileExist path
   case exists of
-    False -> return Nothing
+    False -> pure Nothing
     True  -> Just `liftM` B.readFile (T.unpack path)
 
 writeBytes :: MonadIO m => File -> ByteString -> m ()
@@ -211,7 +211,7 @@ getExecutablePath =
 findExecutable :: MonadIO m => Text -> m (Maybe File)
 findExecutable name = liftIO $ do
   path <- Directory.findExecutable (T.unpack name)
-  return (fmap T.pack path)
+  pure (fmap T.pack path)
 
 prependPath :: MonadIO m => Directory -> m ()
 prependPath dir =
@@ -220,7 +220,7 @@ prependPath dir =
 lookupEnv :: MonadIO m => Text -> m (Maybe Text)
 lookupEnv key = liftIO $ do
   value <- Environment.lookupEnv (T.unpack key)
-  return (fmap T.pack value)
+  pure (fmap T.pack value)
 
 setEnv :: MonadIO m => Text -> Text -> m ()
 setEnv key value = liftIO $
@@ -254,7 +254,7 @@ mapConcurrentlyE io xs = do
 
 ignoreIO :: MonadCatch m => m () -> m ()
 ignoreIO =
-  handle (\(_ :: IOException) -> return ())
+  handle (\(_ :: IOException) -> pure ())
 
 ------------------------------------------------------------------------
 -- Temporary

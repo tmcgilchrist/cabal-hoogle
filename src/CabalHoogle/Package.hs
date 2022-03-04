@@ -100,7 +100,7 @@ parsePackageId =
   where
     component = do
       cs <- Parse.takeWhile1 Char.isAlphaNum
-      if T.all Char.isDigit cs then fail "" else return cs
+      if T.all Char.isDigit cs then fail "" else pure cs
 
 parseVersion :: Text -> Maybe Version
 parseVersion =
@@ -110,6 +110,5 @@ pVersion :: Parse.Parser Version
 pVersion = makeVersion <$> Parse.sepBy Parse.decimal (Parse.char '.')
 
 makeVersion :: [Int] -> Version
-makeVersion xs =
-  DistVersion.mkVersion xs
+makeVersion = DistVersion.mkVersion
 

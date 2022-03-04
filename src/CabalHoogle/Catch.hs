@@ -59,16 +59,16 @@ bracketF :: MonadMask m => m a -> (a -> m (Either b c)) -> (a -> m b) -> m b
 bracketF a f g =
   mask $ \restore -> do
     a' <- a
-    x <- restore (BracketOk `liftM` g a') `catchAll`
-           (\ex -> either BracketFailedFinalizerError (const $ BracketFailedFinalizerOk ex) `liftM` f a')
+    x <- restore (BracketOk <$> g a') `catchAll`
+           (\ex -> either BracketFailedFinalizerError (const $ BracketFailedFinalizerOk ex) <$> f a')
     case x of
       BracketFailedFinalizerOk ex ->
         throwM ex
       BracketFailedFinalizerError b ->
-        return b
+        pure b
       BracketOk b -> do
         z <- f a'
-        return $ either id (const b) z
+        pure $ either id (const b) z
 
 -- | Run an action, turning exceptions which pass the predicate in to 'Nothing'
 --   and re-throwing the rest.
@@ -85,12 +85,12 @@ hushM p m =
   let
     onError e =
       if p e then
-        return Nothing
+        pure Nothing
       else
         throwM e
   in
     handle onError $
-      liftM Just m
+      fmap Just m
 
 -- | Exception and `Left` safe version of bracketEitherT.
 --
@@ -101,16 +101,16 @@ bracketEitherT' acquire release run =
     (\r -> case r of
       Left _ ->
         -- Acquire failed, we have nothing to release
-        return . Right $ ()
+        pure . Right $ ()
       Right r' ->
         -- Acquire succeeded, we need to try and release
-        runEitherT (release r') >>= \x -> return $ case x of
+        runEitherT (release r') >>= \x -> pure $ case x of
           Left err -> Left (Left err)
           Right _ -> Right ())
     (\r -> case r of
       Left err ->
         -- Acquire failed, we have nothing to run
-        return . Left $ err
+        pure . Left $ err
       Right r' ->
         -- Acquire succeeded, we can do some work
         runEitherT (run r'))

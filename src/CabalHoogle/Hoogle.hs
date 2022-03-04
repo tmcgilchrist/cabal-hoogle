@@ -42,8 +42,7 @@ data Hoogle =
     , _hoogleVersion :: HoogleVersion
     }
 
-data HoogleVersion =
-    Hoogle5x
+data HoogleVersion = Hoogle5x
 
 buildRoot :: Directory
 buildRoot =
@@ -62,7 +61,6 @@ hoogle hackageRoot args = do
 hoogleSourcePackages :: Text -> EitherT CabalHoogleError IO [Text]
 hoogleSourcePackages _hackageRoot = do
   -- TODO Only run this when nothing exists, always build local hoogle for haddock
-  -- eg cabal build all --haddock-hoogle
 
   Out str <- liftCabal (cabalFind (buildRoot </> "build") ["-name", "*.txt"])
   let pkgs = T.lines str
@@ -72,6 +70,7 @@ hoogleSourcePackages _hackageRoot = do
   if null pkgs then do
     liftIO . T.hPutStrLn stderr $ "No hoogle files found re-running haddock to generate them."
     liftCabal (cabal_ "v2-haddock" ["--haddock-hoogle", "all", "--verbose=0"])
+
     Out str' <- liftCabal (cabalFind (buildRoot </> "build") ["-name", "*.txt"])
     pure (T.lines str')
   else
@@ -120,21 +119,21 @@ hoogleIndex args pkgs srcPkgs = do
         createDirectoryIfMissing True db'
 
         -- Link each hoogle file into `db'` directory
-
         forM_ pkgs $ \pkg -> do
           let src = db </> renderPackageId pkg <> ".txt"
           let dst = db' </> takeFileName src
-          createSymbolicLink src dst
+          unlessM (doesFileExist dst) $ do
+            createSymbolicLink src dst
 
         -- Link each source package hoogle file into `db'` directory
         forM_ srcPkgs $ \pkg -> do
           let src = pkg
           src' <- canonicalizePath pkg
           let dst = db' </> takeFileName src
-          -- liftIO . T.hPutStrLn stderr $ "Linking: " <> src'
-          createSymbolicLink src' dst
+          unlessM (doesFileExist dst) $ do
+            createSymbolicLink src' dst
 
-        let a = mconcat $ [
+        let a = mconcat [
               ["generate", "--database", db' </> "default.hoo"
               , "--local=" <> db']
               ]
@@ -158,7 +157,9 @@ hoogleCacheDir :: MonadIO m => m Directory
 hoogleCacheDir =
   ensureCabalDir "hoogle"
 
--- | Find the 'hoogle' executable on $PATH and it if isn't there, install it.
+-- | Find the 'hoogle' executable on $PATH, error if it isn't there.
+--
+-- TODO print out the instructions to cabal install hoogle
 findHoogle :: EitherT CabalHoogleError IO Hoogle
 findHoogle = do
   h <- findHoogleExe

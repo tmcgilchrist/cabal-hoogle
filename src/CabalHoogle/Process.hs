@@ -186,32 +186,32 @@ createProcessAnnihilate :: (MonadIO m, MonadCatch m) => Process.CreateProcess ->
 createProcessAnnihilate cp = do
   (a, b, c, ph) <- createProcess cp { Process.create_group = True }
   pgid <- tryProcessGroupOfProcessHandle ph
-  maybe (return ()) installInterruptHandler pgid
-  return (a, b, c, ph)
+  maybe (pure ()) installInterruptHandler pgid
+  pure (a, b, c, ph)
 
 tryPosixPidOfProcessHandle :: MonadIO m => Process.ProcessHandle -> m (Maybe Posix.ProcessID)
 tryPosixPidOfProcessHandle ph =
   liftIO $ ProcessInternals.withProcessHandle ph $
    \case
-    ProcessInternals.OpenHandle i   -> return $ Just i
-    ProcessInternals.ClosedHandle _ -> return $ Nothing
-    ProcessInternals.OpenExtHandle i _ -> return $ Just i
+    ProcessInternals.OpenHandle i   -> pure $ Just i
+    ProcessInternals.ClosedHandle _ -> pure $ Nothing
+    ProcessInternals.OpenExtHandle i _ -> pure $ Just i
 
 tryProcessGroupOfProcessHandle :: (MonadIO m, MonadCatch m) => Process.ProcessHandle -> m (Maybe Posix.ProcessGroupID)
 tryProcessGroupOfProcessHandle ph = do
   pid <- tryPosixPidOfProcessHandle ph
   case pid of
-   Nothing -> return Nothing
+   Nothing -> pure Nothing
    Just h  -> handle ignoreIOE $ do
     pgid <- liftIO (Posix.getProcessGroupIDOf h)
-    return $ Just pgid
+    pure $ Just pgid
  where
-  ignoreIOE (_ :: IOException) = return Nothing
+  ignoreIOE (_ :: IOException) = pure Nothing
 
 installInterruptHandler :: MonadIO m => Posix.ProcessGroupID -> m ()
 installInterruptHandler pgid = do
   _ <- liftIO $ Signals.installHandler Signals.keyboardSignal (Signals.Catch $ Signals.signalProcessGroup Signals.keyboardTermination pgid) Nothing
-  return ()
+  pure ()
 
 
 class ProcessResult a where
@@ -225,7 +225,7 @@ instance ProcessResult Pass where
     (Nothing, Nothing, Nothing, pid) <- createProcess cp
 
     code <- liftIO (Process.waitForProcess pid)
-    return (code, Pass)
+    pure (code, Pass)
 
 instance ProcessResult PassErr where
   callProcess p = withProcess p $ do
@@ -234,7 +234,7 @@ instance ProcessResult PassErr where
     (Nothing, Nothing, Nothing, pid) <- createProcess cp
 
     code <- liftIO (Process.waitForProcess pid)
-    return (code, PassErr)
+    pure (code, PassErr)
 
 instance ProcessResult PassErrAnnihilate where
   callProcess p = withProcess p $ do
@@ -243,7 +243,7 @@ instance ProcessResult PassErrAnnihilate where
     (Nothing, Nothing, Nothing, pid) <- createProcessAnnihilate cp
 
     code <- liftIO (Process.waitForProcess pid)
-    return (code, PassErrAnnihilate)
+    pure (code, PassErrAnnihilate)
 
 instance ProcessResult (Out ByteString) where
   callProcess p = withProcess p $ do
@@ -254,7 +254,7 @@ instance ProcessResult (Out ByteString) where
     out  <- liftIO (B.hGetContents hOut)
     code <- liftIO (Process.waitForProcess pid)
 
-    return (code, Out out)
+    pure (code, Out out)
 
 instance ProcessResult (Err ByteString) where
   callProcess p = withProcess p $ do
@@ -265,7 +265,7 @@ instance ProcessResult (Err ByteString) where
     err  <- liftIO (B.hGetContents hErr)
     code <- liftIO (Process.waitForProcess pid)
 
-    return (code, Err err)
+    pure (code, Err err)
 
 instance ProcessResult (OutErr ByteString) where
   callProcess p = withProcess p $ do
@@ -281,7 +281,7 @@ instance ProcessResult (OutErr ByteString) where
     err  <- waitCatchE p asyncErr
     code <- liftIO (Process.waitForProcess pid)
 
-    return (code, OutErr out err)
+    pure (code, OutErr out err)
 
 instance ProcessResult (OutErrCode ByteString) where
   callProcess p = withProcess p $ do
@@ -297,12 +297,12 @@ instance ProcessResult (OutErrCode ByteString) where
     err  <- waitCatchE p asyncErr
     code <- liftIO (Process.waitForProcess pid)
 
-    return (ExitSuccess, OutErrCode out err code)
+    pure (ExitSuccess, OutErrCode out err code)
 
 instance ProcessResult Hush where
   callProcess p = do
     OutErr (_ :: ByteString) (_ :: ByteString) <- callProcess p
-    return Hush
+    pure Hush
 
 instance ProcessResult Clean where
   callProcess p = withProcess p $ do
@@ -318,7 +318,7 @@ instance ProcessResult Clean where
     ()   <- waitCatchE p asyncErr
     code <- liftIO (Process.waitForProcess pid)
 
-    return (code, Clean)
+    pure (code, Clean)
 
 instance ProcessResult (Out Text) where
   callProcess p = fmap T.decodeUtf8 <$> callProcess p
@@ -359,7 +359,7 @@ call_ :: (Functor m, MonadIO m, MonadCatch m, MonadFail m)
 
 call_ up cmd args = do
   Pass <- call up cmd args
-  return ()
+  pure ()
 
 -- | Call a command with arguments from inside a working directory.
 --
@@ -388,7 +388,7 @@ callFrom_ :: (Functor m, MonadIO m, MonadCatch m, MonadFail m)
 
 callFrom_ up dir cmd args = do
   Pass <- callFrom up dir cmd args
-  return ()
+  pure ()
 
 -- | Capture the output of a process when it fails.
 --
@@ -411,7 +411,7 @@ capture fromOutput p = do
 execProcess :: (MonadIO m, MonadCatch m) => Process -> EitherT ProcessError m a
 execProcess p = handleIO p $ do
     case processDirectory p of
-      Nothing  -> return ()
+      Nothing  -> pure ()
       Just dir -> setCurrentDirectory dir
     liftIO (Posix.executeFile cmd True args env)
   where
@@ -458,7 +458,7 @@ withProcess :: (MonadIO m, MonadCatch m)
 withProcess p io = handleIO p $ do
   (code, result) <- io
   case code of
-    ExitSuccess   -> return result
+    ExitSuccess   -> pure result
     ExitFailure x -> hoistEither (Left (ProcessFailure p x))
 
 fromProcess :: Process -> Process.CreateProcess
@@ -513,7 +513,7 @@ clean input output = do
         IO.hSetBuffering input  LineBuffering
         IO.hSetBuffering output LineBuffering
 
-      ignoreIOE (_ :: IOException) = return ()
+      ignoreIOE (_ :: IOException) = pure ()
 
       -- the handles may be closed by the time we
       -- try to reset the buffer mode, so we need

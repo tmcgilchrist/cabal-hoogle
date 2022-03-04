@@ -46,7 +46,7 @@ runOrDie =
 ------------------------------------------------------------------------
 
 data CabalHoogleCommand
-  = CabalHoogleClean  -- TODO Delete ~/.cabal/hoogle directory
+  = CabalHoogleClean
   | CabalHoogle [Argument]
   deriving (Eq, Show)
 
