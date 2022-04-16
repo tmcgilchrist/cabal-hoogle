@@ -25,7 +25,7 @@ source-repository head
 custom-setup
   setup-depends:
     , base   >=4.9
-    , Cabal  ^>=3.4
+    , Cabal  >=3.4 && <3.7
 
 library
   build-depends:
@@ -34,7 +34,7 @@ library
     , base                     >=4.9
     , base16-bytestring        >=0.1
     , bytestring               >=0.10
-    , Cabal                    ^>=3.4
+    , Cabal                    >=3.4 && <3.7
     , case-insensitive         >=1.2
     , containers               >=0.5
     , cryptonite               >=0.15
