@@ -40,9 +40,17 @@ data Hoogle =
   Hoogle {
       hooglePath :: File
     , _hoogleVersion :: HoogleVersion
-    }
+  }
 
 data HoogleVersion = Hoogle5x
+
+data CabalPlan =
+  CabalPlan {
+      cabalPlanPath :: File
+    , _cabalPlanVersion :: CabalPlanVersion
+  }
+
+data CabalPlanVersion = CabalPlanVersion
 
 buildRoot :: Directory
 buildRoot =
@@ -79,16 +87,16 @@ hoogleSourcePackages _hackageRoot = do
 -- | Download all packages installed in the local sandbox into a global location
 hooglePackages :: Text -> EitherT CabalHoogleError IO HooglePackagesSandbox
 hooglePackages hackageRoot = do
-  -- firstT MafiaInitError $ initialize LatestSources Nothing Nothing
   db <- hoogleCacheDir
   hoogleExe <- findHoogle
-  Out planPkgStr <- liftCabal $ cabalPlan "topo" ["--ascii", "--"]
+  _cabalPlanExe <- findCabalPlan
+  Out planPkgStr <- liftCabal (cabalPlan "topo" ["--ascii", "--"])
   let planPkgs = T.splitOn "\n" . T.strip $ planPkgStr
   fmap (HooglePackagesSandbox . catMaybes) . for (L.tail planPkgs) $ \pkg -> do
     pkgId <- hoistEither . maybeToRight (CabalHoogleParseError $ mconcat ["Invalid package: ", pkg]) . parsePackageId $ pkg
     let name = unPackageName . pkgName $ pkgId
     let txt = db </> pkg <> ".txt"
-    let hoo = hoogleDbFile' hoogleExe db pkgId
+    let hoo = hoogleDbFile hoogleExe db pkgId
     let skip = db </> pkg <> ".skip"
     ifM (doesFileExist skip) (pure Nothing) $
       ifM (doesFileExist hoo) (pure $ Just pkgId) $ do
@@ -133,11 +141,7 @@ hoogleIndex args pkgs srcPkgs = do
           unlessM (doesFileExist dst) $ do
             createSymbolicLink src' dst
 
-        let a = mconcat [
-              ["generate", "--database", db' </> "default.hoo"
-              , "--local=" <> db']
-              ]
-        call_ CabalHoogleProcessError hoogleExe' a
+        call_ CabalHoogleProcessError hoogleExe' ["generate", "--database", db' </> "default.hoo", "--local=" <> db']
       call_ CabalHoogleProcessError (hooglePath hoogleExe) $ ["-d", db' </> "default.hoo"] <> args
 
 hooglePackagesCached :: (Functor m, MonadIO m) => m HooglePackagesCached
@@ -159,12 +163,36 @@ hoogleCacheDir =
 
 -- | Find the 'hoogle' executable on $PATH, error if it isn't there.
 --
--- TODO print out the instructions to cabal install hoogle
 findHoogle :: EitherT CabalHoogleError IO Hoogle
 findHoogle = do
   h <- findHoogleExe
   v <- detectHoogleVersion h
   pure $ Hoogle h v
+
+findCabalPlan :: EitherT CabalHoogleError IO CabalPlan
+findCabalPlan = do
+  h <- findCabalPlanExe
+  v <- detectCabalPlanVersion h
+  pure $ CabalPlan h v
+
+findCabalPlanExe :: EitherT CabalHoogleError IO File
+findCabalPlanExe = do
+  res <- runEitherT $ T.init . unOut <$> call CabalHoogleProcessError "which" ["cabal-plan"]
+  case res of
+    Right path -> pure path
+    Left x ->
+      left . CabalHoogleParseError $ mconcat [
+        "Missing cabal-plan executable: ", renderCabalHoogleError x, "\n\n",
+        "Please install cabal-plan and make it available on your $PATH. eg cabal install cabal-plan"
+      ]
+
+detectCabalPlanVersion :: File -> EitherT CabalHoogleError IO CabalPlanVersion
+detectCabalPlanVersion hf = do
+  res <- T.init . unOut <$> call CabalHoogleProcessError hf ["--version"]
+  if T.isPrefixOf "cabal-plan" res then
+    pure CabalPlanVersion
+  else
+    left . CabalHoogleParseError $ "Invalid cabal-plan version: " <> res
 
 findHoogleExe :: EitherT CabalHoogleError IO File
 findHoogleExe = do
@@ -172,8 +200,10 @@ findHoogleExe = do
   case res of
     Right path -> pure path
     Left x ->
-      -- TODO More friendly error messages about expecting to find `hoogle` on $PATH
-      left . CabalHoogleParseError $ ("Invalid hoogle version: " <> renderCabalHoogleError x)
+      left . CabalHoogleParseError $ mconcat [
+        "Invalid hoogle version: ", renderCabalHoogleError x, "\n\n",
+        "Please install Hoogle 5 and make it available on your $PATH."
+      ]
 
 detectHoogleVersion :: File -> EitherT CabalHoogleError IO HoogleVersion
 detectHoogleVersion hf = do
@@ -183,8 +213,8 @@ detectHoogleVersion hf = do
   else
     left . CabalHoogleParseError $ "Invalid hoogle version: " <> res
 
-hoogleDbFile' :: Hoogle -> Directory -> PackageId -> File
-hoogleDbFile' v db pkg = case v of
+hoogleDbFile :: Hoogle -> Directory -> PackageId -> File
+hoogleDbFile v db pkg = case v of
   Hoogle _ Hoogle5x ->
     db </> renderPackageId pkg <> ".txt"
 

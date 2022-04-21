@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module CabalHoogle.Options.Applicative (
@@ -74,15 +75,14 @@ dispatch p = customExecParser (prefs showHelpOnEmpty) (info (p <**> helper) idm)
 -- >  case c of
 -- >      DoThingA -> ...
 -- >      DoThingB -> ...
-cli :: Show a => [Char] -> [Char] -> [Char] -> [[Char]] -> Parser a -> (a -> IO b) -> IO b
+cli :: Show a => String -> String -> String -> [String] -> Parser a -> (a -> IO b) -> IO b
 cli name v cv deps commandParser act = do
-  dispatch (safeCommand commandParser) >>= \a ->
-    case a of
+  dispatch (safeCommand commandParser) >>= \case
       VersionCommand -> do
         putStrLn (name <> ": " <> v)
         putStrLn ("built with cabal version: " <> cv) >> exitSuccess
       DependencyCommand ->
-        mapM putStrLn deps >> exitSuccess
+        mapM_ putStrLn deps >> exitSuccess
       RunCommand DryRun c ->
         print c >> exitSuccess
       RunCommand RealRun c ->
