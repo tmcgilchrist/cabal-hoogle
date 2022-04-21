@@ -65,7 +65,7 @@ commands :: [Mod CommandFields CabalHoogleCommand]
 commands =
   [ command'
       "clean"
-      "Clean up after build. Removes the sandbox and the dist directory."
+      "Clean up after build (only cleans files created by this program)."
       (pure CabalHoogleClean),
     command'
       "hoogle"
