@@ -1,0 +1,9 @@
+index-state: 2022-04-24T01:57:26Z
+
+packages:
+  ./
+
+tests: True
+
+test-show-details: direct
+
